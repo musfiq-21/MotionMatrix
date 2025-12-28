@@ -17,7 +17,7 @@ def register(
 ):
     try:
         user = create_user(db, user_in)
-        return user #atm, it is not userResponse, edit it.
+        return user #atm, it is not userResponse, edit it. * fixed at 27/12/25
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

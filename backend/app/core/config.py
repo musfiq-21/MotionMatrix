@@ -19,6 +19,10 @@ from pydantic import (
 )
 from pydantic.networks import AnyUrl
 
+BACKEND_DIR = Path(__file__).resolve().parents[3]
+# config.py -> core -> app -> backend
+
+ENV_FILE = BACKEND_DIR / "backend" / "backend.env"
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
@@ -262,9 +266,9 @@ class Settings(BaseSettings):
         if v:
             v.parent.mkdir(parents=True, exist_ok=True)
         return v
-    
+
     model_config = {
-        "env_file": ".env",       # where to load environment variables
+        "env_file": ENV_FILE,       # where to load environment variables
         "env_file_encoding": "utf-8"
     }
 

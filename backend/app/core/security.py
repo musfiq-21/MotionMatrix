@@ -236,7 +236,7 @@ def create_access_token(
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+            minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
         )
     
     # Add standard JWT claims
@@ -745,5 +745,5 @@ def clear_token_blacklist() -> None:
 logger.info(
     f"Security module initialized - "
     f"JWT Algorithm: {settings.JWT_ALGORITHM}, "
-    f"Token Expiry: {settings.ACCESS_TOKEN_EXPIRE_MINUTES} minutes"
+    f"Token Expiry: {settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES} minutes"
 )

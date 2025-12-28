@@ -25,5 +25,12 @@ def create_user(db: Session, user_data:UserCreate)-> UserResponse:
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    new_userResponse = UserResponse()
-    return new_userResponse # have to return userResponse
+    new_user_response = UserResponse(
+        id=new_user.id,
+        email=new_user.email,
+        full_name=new_user.full_name,
+        role=new_user.role,
+        status=new_user.status,
+        created_at=new_user.created_at
+    )
+    return new_user_response
