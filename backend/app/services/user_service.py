@@ -1,8 +1,6 @@
-from calendar import error
-
 from backend.app.core.security import hash_password
 from backend.app.models.user import  User
-from backend.app.schemas.user import UserCreate, UserLogin, UserResponse
+from backend.app.schemas.user import UserCreate, UserResponse
 from backend.app.utils.enums import UserRole, UserStatus
 from sqlalchemy.orm import Session
 
@@ -42,22 +40,3 @@ def create_user(db: Session, user_data:UserCreate)-> UserResponse:
         updated_at=new_user.created_at
     )
     return new_user_response
-
-def login_user(db: Session, user_data:UserLogin)-> UserResponse:
-
-    found_user = db.query(User).filter(User.email == user_data.email).first()
-
-    if not found_user:
-        raise ValueError("Email or password incorrect")
-
-    found_user_response = UserResponse(
-        id=found_user.id,
-        email=found_user.email,
-        full_name=found_user.full_name,
-        role=UserRole(found_user.role),
-        status=UserStatus(found_user.status),
-        created_at=found_user.created_at,
-        is_first_login=found_user.is_first_login,
-        updated_at=found_user.created_at
-    )
-    return found_user_response

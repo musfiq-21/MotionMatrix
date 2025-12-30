@@ -3,14 +3,15 @@ from sqlalchemy.orm import Session
 from typing import List
 from backend.app.core.config import settings
 from backend.app.core.database import get_db
-from backend.app.schemas.user import UserResponse, UserLogin
-from backend.app.services.user_service import login_user
+from backend.app.schemas.user import UserLogin
+from backend.app.schemas.token import Token
+from backend.app.services.auth_service import AuthService
 
 router = APIRouter()
 
 @router.post(
     "/login",
-    response_model=UserResponse,
+    response_model=Token,
     status_code=status.HTTP_201_CREATED,
 )
 def login(
@@ -18,7 +19,8 @@ def login(
     db: Session = Depends(get_db),
 ):
     try:
-        user = login_user(db, user_in)
+        authentication = AuthService()
+        user = authentication.login(user_in, db)
         return user
     except ValueError as e:
         raise HTTPException(
