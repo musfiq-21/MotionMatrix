@@ -1,0 +1,36 @@
+"""
+Application constants.
+
+Centralised constants used throughout the application.
+"""
+
+# Pagination defaults
+DEFAULT_PAGE_SIZE = 50
+MAX_PAGE_SIZE = 100
+
+# Token expiry
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+# Attendance status values
+ATTENDANCE_PRESENT = "PRESENT"
+ATTENDANCE_ABSENT = "ABSENT"
+ATTENDANCE_ON_LEAVE = "ON_LEAVE"
+ATTENDANCE_HALF_DAY = "HALF_DAY"
+ATTENDANCE_LATE = "LATE"
+
+# Leave status values
+LEAVE_PENDING = "PENDING"
+LEAVE_APPROVED = "APPROVED"
+LEAVE_REJECTED = "REJECTED"
+LEAVE_CANCELLED = "CANCELLED"
+
+# Overtime status values
+OVERTIME_PENDING = "PENDING"
+OVERTIME_APPROVED = "APPROVED"
+OVERTIME_REJECTED = "REJECTED"
+
+# Date formats
+DATE_FORMAT = "%Y-%m-%d"
+DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+TIME_FORMAT = "%H:%M"

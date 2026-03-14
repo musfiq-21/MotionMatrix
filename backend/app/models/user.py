@@ -214,6 +214,9 @@ class User(Base):
         doc="User who created this account"
     )
     
+    # One-to-one: Worker profile (if user is a worker)
+    worker = relationship("Worker", back_populates="user", uselist=False)
+    
     # One-to-many: Attendance records
     # Defined in Attendance model to avoid circular imports
     # attendance_records = relationship("Attendance", back_populates="user")
