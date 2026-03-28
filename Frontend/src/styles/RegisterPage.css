@@ -10,7 +10,7 @@
 
 .register-page {
   font-family: 'Segoe UI', 'Roboto', sans-serif;
-  background: linear-gradient(135deg, #334155 0%, #0D9488 100%);
+  background: linear-gradient(135deg, #8E1F6A 0%, #C74B9B 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -37,7 +37,7 @@
 
 .back-btn {
   background: transparent;
-  color: #0D9488;
+  color: #8E1F6A;
   border: 2px solid #e0e0e0;
   padding: 10px 16px;
   border-radius: 8px;
@@ -53,10 +53,10 @@
 
 .back-btn:hover {
   background: #f8f9ff;
-  border-color: #0D9488;
-  color: #0D9488;
+  border-color: #8E1F6A;
+  color: #8E1F6A;
   transform: translateX(-3px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15);
+  box-shadow: 0 4px 12px rgba(142, 31, 106, 0.15);
 }
 
 .back-btn:active {
@@ -84,7 +84,7 @@
 .register-title {
   text-align: center;
   font-size: 2rem;
-  color: #0D9488;
+  color: #8E1F6A;
   margin-bottom: 5px;
   font-weight: 700;
   margin-top: 20px;
@@ -140,8 +140,8 @@
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #0D9488;
-  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.1);
+  border-color: #8E1F6A;
+  box-shadow: 0 0 0 4px rgba(142, 31, 106, 0.1);
   background-color: white;
 }
 
@@ -184,12 +184,12 @@
   cursor: pointer;
   width: 18px;
   height: 18px;
-  accent-color: #0D9488;
+  accent-color: #8E1F6A;
 }
 
 .btn-register {
   padding: 12px 15px;
-  background: linear-gradient(135deg, #334155 0%, #0D9488 100%);
+  background: linear-gradient(135deg, #8E1F6A 0%, #C74B9B 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -199,12 +199,12 @@
   transition: all 0.3s ease;
   margin-top: 10px;
   letter-spacing: 0.5px;
-  box-shadow: 0 4px 15px rgba(13, 148, 136, 0.2);
+  box-shadow: 0 4px 15px rgba(142, 31, 106, 0.2);
 }
 
 .btn-register:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(13, 148, 136, 0.4);
+  box-shadow: 0 12px 30px rgba(142, 31, 106, 0.4);
 }
 
 .btn-register:active {
@@ -222,14 +222,14 @@
 }
 
 .login-link {
-  color: #0D9488;
+  color: #8E1F6A;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s ease;
 }
 
 .login-link:hover {
-  color: #0D9488;
+  color: #8E1F6A;
   text-decoration: underline;
 }
 

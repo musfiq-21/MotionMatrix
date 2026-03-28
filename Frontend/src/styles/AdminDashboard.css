@@ -12,7 +12,7 @@
 /* Sidebar */
 .sidebar {
   width: 280px;
-  background: linear-gradient(135deg, #334155 0%, #0D9488 100%);
+  background: linear-gradient(135deg, #8E1F6A 0%, #C74B9B 100%);
   color: white;
   display: flex;
   flex-direction: column;
@@ -72,7 +72,7 @@
 
 .menu-item.active {
   background: white;
-  color: #0D9488;
+  color: #8E1F6A;
   font-weight: 600;
 }
 
@@ -91,7 +91,7 @@
 
 .logout-btn:hover {
   background: white;
-  color: #0D9488;
+  color: #8E1F6A;
 }
 
 /* Main Content */
@@ -202,7 +202,7 @@
 
 .stat-number {
   font-size: 2rem;
-  color: #0D9488;
+  color: #8E1F6A;
   font-weight: 700;
   margin: 0;
 }
@@ -226,7 +226,7 @@
 }
 
 .action-btn {
-  background: linear-gradient(135deg, #334155 0%, #0D9488 100%);
+  background: linear-gradient(135deg, #8E1F6A 0%, #C74B9B 100%);
   color: white;
   border: none;
   padding: 14px 20px;
@@ -238,7 +238,7 @@
 
 .action-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(13, 148, 136, 0.3);
+  box-shadow: 0 5px 15px rgba(142, 31, 106, 0.3);
 }
 
 /* Animations */
