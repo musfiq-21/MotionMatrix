@@ -24,7 +24,7 @@ import time
 from typing import Generator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, event, exc, pool
+from sqlalchemy import create_engine, event, exc, pool, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
@@ -197,7 +197,7 @@ def connect_to_database(max_retries: int = 5, base_delay: float = 1.0) -> bool:
             # Attempt to create a connection
             with engine.connect() as conn:
                 # Execute a simple query to verify connection
-                conn.execute("SELECT 1")
+                conn.execute(text("SELECT 1"))
                 logger.info(f"Database connection successful on attempt {attempt}")
                 return True
                 
@@ -433,7 +433,7 @@ def check_database_health() -> dict:
     try:
         # Test database connection
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         
         # Get pool statistics
         pool_status = engine.pool.status()

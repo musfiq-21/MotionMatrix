@@ -1,7 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.app.core.config import settings
+from backend.app.core.database import Base, engine
+from backend.app.core.exceptions import (
+    MotionMatrixException,
+    motion_matrix_exception_handler,
+    validation_exception_handler,
+    http_exception_handler,
+)
+
+# Import ALL models so Base.metadata knows every table before create_all()
+import backend.app.models  # noqa: F401  (imports __init__.py which imports all models)
 
 # Existing routers
 from backend.app.api.v1.demo import router as demo_router
@@ -34,6 +46,16 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Register custom exception handlers
+    app.add_exception_handler(MotionMatrixException, motion_matrix_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+
+    @app.on_event("startup")
+    def on_startup():
+        """Create all database tables on startup (idempotent)."""
+        Base.metadata.create_all(bind=engine)
 
     # ---- Existing routes ----
     app.include_router(demo_router, prefix="/api/v1", tags=["Demo"])

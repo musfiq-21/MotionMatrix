@@ -25,7 +25,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict
 
 from backend.app.utils.enums import UserRole
 
@@ -104,15 +104,15 @@ class Token(BaseModel):
             raise ValueError("Token type must be 'bearer'")
         return v
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
                 "token_type": "bearer",
                 "expires_in": 1800
             }
         }
+    )
 
 
 # ============================================================================
@@ -280,9 +280,8 @@ class TokenPayload(BaseModel):
         delta = self.exp - datetime.utcnow()
         return int(delta.total_seconds())
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "sub": "123e4567-e89b-12d3-a456-426614174000",
                 "role": "ADMIN",
@@ -290,9 +289,9 @@ class TokenPayload(BaseModel):
                 "iat": "2024-12-31T12:00:00Z",
                 "email": "admin@example.com"
             }
-        }
-        # Allow arbitrary types (for UserRole enum)
-        arbitrary_types_allowed = True
+        },
+        arbitrary_types_allowed=True
+    )
 
 
 # ============================================================================
@@ -335,13 +334,13 @@ class RefreshToken(BaseModel):
         example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
             }
         }
+    )
 
 
 # ============================================================================
@@ -379,9 +378,8 @@ class TokenWithRefresh(Token):
         example="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
                 "token_type": "bearer",
@@ -389,6 +387,7 @@ class TokenWithRefresh(Token):
                 "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
             }
         }
+    )
 
 
 # ============================================================================
@@ -456,14 +455,14 @@ class LoginRequest(BaseModel):
         
         return v
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "email": "user@example.com",
                 "password": "SecurePassword123!"
             }
         }
+    )
 
 
 # ============================================================================
@@ -519,17 +518,17 @@ class TokenVerifyResponse(BaseModel):
         description="Error message if token is invalid"
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "valid": True,
                 "user_id": "123e4567-e89b-12d3-a456-426614174000",
                 "role": "ADMIN",
                 "expires_at": "2024-12-31T23:59:59Z"
             }
-        }
-        arbitrary_types_allowed = True
+        },
+        arbitrary_types_allowed=True
+    )
 
 
 # ============================================================================
@@ -619,15 +618,15 @@ class PasswordChangeRequest(BaseModel):
             raise ValueError("New password must be different from current password")
         return v
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "current_password": "OldPassword123!",
                 "new_password": "NewPassword456!",
                 "confirm_password": "NewPassword456!"
             }
         }
+    )
 
 
 # ============================================================================

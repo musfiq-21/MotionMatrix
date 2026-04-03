@@ -10,8 +10,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from jose import JWTError
+
 from backend.app.core.database import get_db
-from backend.app.core.security import decode_access_token
+from backend.app.core.security import decode_access_token, is_token_blacklisted
 from backend.app.models.user import User
 
 security = HTTPBearer()
@@ -23,9 +25,29 @@ def get_current_user(
 ) -> User:
     """Extract and validate current user from JWT token."""
     token = credentials.credentials
-    payload = decode_access_token(token)
+
+    if is_token_blacklisted(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        payload = decode_access_token(token)
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     if not payload:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     user_email = payload.get("sub")
     user = db.query(User).filter(User.email == user_email).first()

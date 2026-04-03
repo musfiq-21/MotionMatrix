@@ -23,7 +23,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
 from email_validator import validate_email, EmailNotValidError
 
 from backend.app.utils.enums import UserRole, UserStatus
@@ -162,15 +162,15 @@ class UserBase(BaseModel):
         
         return cleaned
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "email": "john.doe@example.com",
                 "full_name": "John Doe",
                 "phone_number": "+1234567890"
             }
         }
+    )
 
 
 # ============================================================================
@@ -266,9 +266,8 @@ class UserCreate(UserBase):
             raise ValueError("Passwords do not match")
         return v
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "email": "new.user@example.com",
                 "full_name": "New User",
@@ -278,6 +277,7 @@ class UserCreate(UserBase):
                 "role": "WORKER"
             }
         }
+    )
 
 
 # ============================================================================
@@ -390,14 +390,14 @@ class UserUpdate(BaseModel):
         # The actual check happens in the endpoint
         return v
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "full_name": "John Smith",
                 "phone_number": "+9876543210"
             }
         }
+    )
 
 
 # ============================================================================
@@ -486,10 +486,9 @@ class UserResponse(BaseModel):
         description="ID of user who created this account"
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        orm_mode = True  # Allow creation from ORM models
-        schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
                 "email": "john.doe@example.com",
@@ -503,6 +502,7 @@ class UserResponse(BaseModel):
                 "created_by_id": "456e7890-e89b-12d3-a456-426614174000"
             }
         }
+    )
 
 
 # ============================================================================
@@ -545,14 +545,14 @@ class UserLogin(BaseModel):
         """Normalize email to lowercase."""
         return v.lower().strip()
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "email": "user@example.com",
                 "password": "SecurePassword123!"
             }
         }
+    )
 
 
 # ============================================================================
@@ -626,15 +626,15 @@ class PasswordChange(BaseModel):
             raise ValueError("Passwords do not match")
         return v
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "current_password": "OldPassword123!",
                 "new_password": "NewPassword456!",
                 "confirm_password": "NewPassword456!"
             }
         }
+    )
 
 
 # ============================================================================
@@ -688,14 +688,14 @@ class PasswordReset(BaseModel):
             raise ValueError(f"Password validation failed: {error_msg}")
         return v
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "new_password": "TempPassword123!",
                 "force_change": True
             }
         }
+    )
 
 
 # ============================================================================
@@ -757,9 +757,8 @@ class UserListResponse(BaseModel):
         ge=0
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "users": [
                     {
@@ -780,6 +779,7 @@ class UserListResponse(BaseModel):
                 "pages": 5
             }
         }
+    )
 
 
 # ============================================================================
@@ -807,13 +807,13 @@ class UserStatusUpdate(BaseModel):
         description="New user status"
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "status": "INACTIVE"
             }
         }
+    )
 
 
 # ============================================================================
@@ -842,13 +842,13 @@ class UserRoleUpdate(BaseModel):
         description="New user role"
     )
     
-    class Config:
-        """Pydantic model configuration."""
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "role": "MANAGER"
             }
         }
+    )
 
 
 # ============================================================================

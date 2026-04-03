@@ -190,6 +190,9 @@ class Settings(BaseSettings):
     AWS_REGION: str = Field(default="us-east-1")
     S3_BUCKET_NAME: Optional[str] = None
     
+
+    GEMINI_API_KEY: Optional[str] = None
+
     @property
     def MAX_UPLOAD_SIZE_BYTES(self) -> int:
         """Convert max upload size to bytes."""

@@ -2,16 +2,16 @@
 Pydantic schemas for Overtime operations.
 """
 
-from datetime import date, datetime
+from datetime import date as dt_date, datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class OvertimeBase(BaseModel):
     worker_id: UUID
-    date: date = Field(default_factory=date.today)
+    date: dt_date = Field(default_factory=dt_date.today)
     hours: float = Field(..., gt=0, le=12)
     reason: Optional[str] = None
 
@@ -33,5 +33,4 @@ class OvertimeResponse(OvertimeBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

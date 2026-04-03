@@ -23,8 +23,8 @@ class Role(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
-    users = relationship("User", back_populates="role_ref", lazy="dynamic")
+    # Note: User.role is a plain String column (not a FK to this table).
+    # A relationship cannot be defined here without first adding a role_id FK to User.
 
     def __repr__(self):
         return f"<Role(role_name='{self.role_name}')>"
