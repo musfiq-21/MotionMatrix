@@ -16,6 +16,7 @@ from backend.app.models.user import User
 def auth_service_login(user_login: UserLogin, db: Session = Depends(get_db)) -> Token:
     user_repo = UserRepository()
     user = user_repo.get_by_email(user_login.email, db)
+    print(user.email, user.hashed_password)
 
     if not user:
         raise AuthenticationException("Invalid email or password")
@@ -85,6 +86,7 @@ def require_authorization(endpoint: APIEndpoint):
     async def authorization_checker(
             current_user: Annotated[User, Depends(get_current_user)]
     ):
+        print(f"Checking authorization for user {current_user.email} with role {current_user.role} on endpoint {endpoint}")
         if not is_authorized(current_user.role, endpoint):
             authorized_roles = get_authorized_roles(endpoint)
             roles_str = ", ".join([role.value for role in authorized_roles])

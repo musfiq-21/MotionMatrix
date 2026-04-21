@@ -16,8 +16,9 @@ router = APIRouter()
 def register(
     user_in: UserCreate,
     db: Session = Depends(get_db),
-   current_user: UserRole = Depends(require_authorization(APIEndpoint.REGISTER_USER)),
+    current_user: UserRole = Depends(require_authorization(APIEndpoint.REGISTER_USER)),
 ):
+    print("Current user role:", current_user)
     try:
         user = create_user(db, user_in)
         return user #atm, it is not userResponse, edit it. * fixed at 27/12/25

@@ -16,13 +16,15 @@ router = APIRouter()
     status_code=status.HTTP_200_OK,  # Login should be 200, not 201
 )
 def login(
-    credentials: OAuth2PasswordRequestForm = Depends(),  # Changed from user_in
+    credentials: UserLogin,  # Changed from user_in
     db: Session = Depends(get_db),
 ):
+    print(credentials.email)
+    print(credentials.password)
     try:
         # Create a UserLogin object from the form data
         user_in = UserLogin(
-            email=credentials.username,  # OAuth2 uses 'username', treat it as email
+            email=credentials.email,  # OAuth2 uses 'username', treat it as email
             password=credentials.password
         )
         user = auth_service_login(user_in, db)
@@ -43,8 +45,6 @@ def refresh(
 ):
     try:
         payload = auth_service_validate_token(old_token, db=db)
-        return payload
-        print(payload.role)
         return payload
     except ValueError as e:
         raise HTTPException(
