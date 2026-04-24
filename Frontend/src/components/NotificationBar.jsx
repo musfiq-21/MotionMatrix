@@ -1,20 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/NotificationBar.css';
-import { getNotificationsForFloorManager, markNotificationAsRead } from '../db';
 
 export default function NotificationBar({ floorManagerId, unreadCount, onNotificationUpdate }) {
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    const allNotifications = getNotificationsForFloorManager(floorManagerId);
-    setNotifications(allNotifications);
-    const unreadCount = allNotifications.filter(n => !n.read).length;
-    onNotificationUpdate(unreadCount);
+    // Notifications will be fetched from API in the future
+    // For now, initialize empty
+    setNotifications([]);
+    onNotificationUpdate(0);
   }, [floorManagerId, onNotificationUpdate]);
 
   const handleNotificationClick = (notificationId) => {
-    markNotificationAsRead(notificationId);
+    // Mark notification as read in the future when notifications API is ready
     const updated = notifications.map(n => 
       n.id === notificationId ? { ...n, read: true } : n
     );

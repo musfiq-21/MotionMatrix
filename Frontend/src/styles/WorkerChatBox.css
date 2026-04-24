@@ -9,6 +9,121 @@
   gap: 20px;
 }
 
+/* Chat Wrapper Layout */
+.chat-wrapper {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  height: 100%;
+  background: transparent;
+}
+
+/* Contacts Panel (Left Sidebar) */
+.contacts-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.contacts-panel h3 {
+  color: #1B4332;
+  margin: 0 0 15px 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.contacts-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.contacts-list::-webkit-scrollbar-thumb {
+  background: #D8E2DC;
+  border-radius: 3px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #F5F2ED;
+  border: none;
+  border-left: 4px solid #D8E2DC;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.contact-item:hover {
+  background: #EFEFEF;
+  border-left-color: #D97706;
+}
+
+.contact-item.active {
+  background: #E8F5E9;
+  border-left-color: #1B4332;
+}
+
+.contact-avatar {
+  font-size: 1.8rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #1B4332 0%, #2D5A3D 100%);
+  color: white;
+  border-radius: 50%;
+}
+
+.contact-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-name {
+  color: #1B4332;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contact-role {
+  color: #999;
+  font-size: 0.75rem;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chat Panel (Main Chat Area) */
+.chat-panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .no-manager {
   background: white;
   padding: 40px;

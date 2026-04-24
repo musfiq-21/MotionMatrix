@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import '../styles/FloorManagerDashboard.css';
 import NotificationBar from './NotificationBar';
 import FloorManagerProfile from './FloorManagerProfile';
-import FloorManagerChatBox from './FloorManagerChatBox';
+import UnifiedChat from './UnifiedChat';
 import ViewFloorPage from './ViewFloorPage';
 import OvertimeApprovalPage from './OvertimeApprovalPage';
 import ViewProductionRecordPage from './ViewProductionRecordPage';
@@ -190,7 +190,7 @@ export default function FloorManagerDashboard({ user }) {
                 onNotificationUpdate={setUnreadNotifications}
               />
             </div>
-            <FloorManagerProfile user={user} />
+            <FloorManagerProfile user={user} currentUser={user} />
           </div>
         )}
 
@@ -205,7 +205,7 @@ export default function FloorManagerDashboard({ user }) {
                 onNotificationUpdate={setUnreadNotifications}
               />
             </div>
-            <FloorManagerChatBox user={user} />
+            <UnifiedChat user={user} />
           </div>
         )}
 
@@ -220,7 +220,7 @@ export default function FloorManagerDashboard({ user }) {
                 onNotificationUpdate={setUnreadNotifications}
               />
             </div>
-            <ViewFloorPage floorManagerId={user?.id} department={user?.department} />
+            <ViewFloorPage user={user} />
           </div>
         )}
 
@@ -250,7 +250,7 @@ export default function FloorManagerDashboard({ user }) {
                 onNotificationUpdate={setUnreadNotifications}
               />
             </div>
-            <ViewProductionRecordPage floorManagerId={user?.id} department={user?.department} />
+            <ViewProductionRecordPage user={user} floorManagerId={user?.id} department={user?.department} />
           </div>
         )}
 

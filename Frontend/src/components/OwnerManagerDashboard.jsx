@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/OwnerManagerDashboard.css';
-import ChatBoxPage from './ChatBoxPage';
+import UnifiedChat from './UnifiedChat';
 import GraphViewPage from './GraphViewPage';
 import ReportViewPage from './ReportViewPage';
 import OwnerManagerProfile from './OwnerManagerProfile';
@@ -160,7 +160,7 @@ export default function OwnerManagerDashboard({ user }) {
         )}
 
         {/* Chat Section */}
-        {activeSection === 'chat' && <ChatBoxPage user={user} />}
+        {activeSection === 'chat' && <UnifiedChat user={user} />}
 
         {/* Graph Section */}
         {activeSection === 'graph' && <GraphViewPage />}
@@ -169,7 +169,7 @@ export default function OwnerManagerDashboard({ user }) {
         {activeSection === 'report' && <ReportViewPage />}
 
         {/* Profile Section */}
-        {activeSection === 'profile' && <OwnerManagerProfile user={user} />}
+        {activeSection === 'profile' && <OwnerManagerProfile user={user} currentUser={user} />}
       </main>
     </div>
   );

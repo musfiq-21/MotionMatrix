@@ -116,19 +116,22 @@
 }
 
 .login-form,
-.recovery-form {
+.recovery-form,
+.reset-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.recovery-form h2 {
+.recovery-form h2,
+.reset-form h2 {
   color: #1B4332;
   font-size: 1.5rem;
   margin-bottom: 10px;
 }
 
-.recovery-text {
+.recovery-text,
+.reset-text {
   color: #666;
   font-size: 0.95rem;
   line-height: 1.5;

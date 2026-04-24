@@ -1,37 +1,109 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/ViewFloorPage.css';
-import { getFloorById, getWorkerActivityByFloor, getCCTVsByFloor, users } from '../db';
 
-export default function ViewFloorPage({ floorManagerId, department }) {
+export default function ViewFloorPage({ user }) {
   const [floorData, setFloorData] = useState(null);
   const [workerActivity, setWorkerActivity] = useState([]);
   const [cctvCameras, setCctvCameras] = useState([]);
   const [selectedCctv, setSelectedCctv] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Get the floor manager's floor info (simplified: using floorId 1 or 2 based on department)
-    const floorId = department === 'Sewing' ? 1 : department === 'Cutting' ? 2 : 1;
-    
-    const floor = getFloorById(floorId);
-    setFloorData(floor);
+    const fetchFloorData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const token = localStorage.getItem('authToken');
+        
+        // Get user's actual floor ID from backend
+        let floorId = user?.assignedFloorId;
+        
+        // If not in props, fetch from API
+        if (!floorId) {
+          const userRes = await fetch('http://localhost:5000/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            floorId = userData.user?.assignedFloorId;
+          }
+        }
 
-    const activity = getWorkerActivityByFloor(floorId);
-    setWorkerActivity(activity);
+        if (!floorId) {
+          setError('No floor assigned to this user');
+          setLoading(false);
+          return;
+        }
+        
+        // Fetch floor data
+        const floorRes = await fetch(`http://localhost:5000/api/floors/${floorId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (floorRes.ok) {
+          const floorData = await floorRes.json();
+          setFloorData(floorData.data || floorData);
+        } else {
+          setError('Failed to load floor data');
+        }
 
-    const cctvs = getCCTVsByFloor(floorId);
-    setCctvCameras(cctvs);
+        // Fetch CCTVs for this floor
+        const cctvRes = await fetch(`http://localhost:5000/api/cctvs/floor/${floorId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (cctvRes.ok) {
+          const cctvData = await cctvRes.json();
+          const cctvs = cctvData.cctvs || [];
+          setCctvCameras(cctvs);
+          if (cctvs.length > 0) {
+            setSelectedCctv(cctvs[0]);
+          }
+        }
 
-    if (cctvs.length > 0) {
-      setSelectedCctv(cctvs[0]);
-    }
-  }, [department]);
+        // Initialize empty worker activity for now
+        setWorkerActivity([]);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching floor data:', error);
+        setError('Error loading floor data: ' + error.message);
+        setLoading(false);
+      }
+    };
 
-  const getWorkerInfo = (workerId) => {
-    return users.find(u => u.id === workerId);
-  };
+    fetchFloorData();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="view-floor-loading">
+        <div className="loading-spinner">⏳ Loading floor data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="view-floor-loading error-state">
+        <div className="error-message">❌ {error}</div>
+      </div>
+    );
+  }
 
   if (!floorData) {
-    return <div className="view-floor-loading">Loading floor data...</div>;
+    return (
+      <div className="view-floor-loading error-state">
+        <div className="error-message">❌ No floor data available</div>
+      </div>
+    );
   }
 
   return (

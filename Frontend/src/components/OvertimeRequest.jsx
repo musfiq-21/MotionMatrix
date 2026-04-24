@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/OvertimeRequest.css';
-import { 
-  getFloorManagerByDepartment, 
-  submitOvertimeRequest,
-  getOvertimeRequestsByWorker 
-} from '../db';
 
 export default function OvertimeRequest({ user }) {
   const [showForm, setShowForm] = useState(false);
@@ -15,15 +10,116 @@ export default function OvertimeRequest({ user }) {
   });
   const [requests, setRequests] = useState([]);
   const [floorManager, setFloorManager] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    // Get floor manager and load overtime requests
-    const manager = getFloorManagerByDepartment(user?.department);
-    setFloorManager(manager);
+    fetchUserAndFloorManager();
+  }, []);
 
-    const workerRequests = getOvertimeRequestsByWorker(user?.id);
-    setRequests(workerRequests);
-  }, [user]);
+  const fetchUserAndFloorManager = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Get current user's assigned floor from the backend
+      const userRes = await fetch('http://localhost:5000/api/auth/me', { headers });
+      if (!userRes.ok) throw new Error('Failed to fetch user');
+      
+      const userData = await userRes.json();
+      const assignedFloorId = userData.user?.assignedFloorId;
+
+      if (assignedFloorId) {
+        // Get floor manager for this floor
+        const managerRes = await fetch(`http://localhost:5000/api/users/floor-manager/${assignedFloorId}`, { headers });
+        if (managerRes.ok) {
+          const managerData = await managerRes.json();
+          if (managerData.success && managerData.floorManager) {
+            setFloorManager(managerData.floorManager);
+          }
+        }
+      }
+      
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching user/floor manager:', err);
+      setError('Failed to load overtime data');
+    }
+    
+    fetchRequests();
+  };
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Fetch worker's overtime requests
+      const requestsRes = await fetch('http://localhost:5000/api/overtime/my-requests', { headers });
+      if (requestsRes.ok) {
+        const requestsData = await requestsRes.json();
+        setRequests(requestsData.overtimeRequests || []);
+      }
+    } catch (err) {
+      console.error('Error fetching requests:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Get floor manager info for assigned floor
+      if (user?.assignedFloorId) {
+        try {
+          const managerRes = await fetch(`http://localhost:5000/api/users/floor-manager/${user.assignedFloorId}`, { headers });
+          if (managerRes.ok) {
+            const managerData = await managerRes.json();
+            if (managerData.success && managerData.floorManager) {
+              setFloorManager(managerData.floorManager);
+            }
+          } else {
+            console.warn('⚠️ Floor manager not found for this floor');
+          }
+        } catch (fmError) {
+          console.error('Error fetching floor manager:', fmError);
+        }
+      } else {
+        console.warn('⚠️ User is not assigned to a floor');
+      }
+
+      // Fetch worker's overtime requests
+      const requestsRes = await fetch('http://localhost:5000/api/overtime/my-requests', { headers });
+      if (requestsRes.ok) {
+        const requestsData = await requestsRes.json();
+        setRequests(requestsData.overtimeRequests || []);
+      } else {
+        console.warn('⚠️ Failed to fetch overtime requests');
+      }
+
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load overtime data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -33,24 +129,70 @@ export default function OvertimeRequest({ user }) {
     }));
   };
 
-  const handleSubmitRequest = () => {
-    if (!formData.date || !formData.hours || !formData.reason.trim() || !floorManager) {
+  const handleSubmitRequest = async () => {
+    if (!formData.date || !formData.hours || !formData.reason.trim()) {
       alert('Please fill in all fields');
       return;
     }
 
-    const newRequest = submitOvertimeRequest(
-      user?.id,
-      floorManager?.id,
-      formData.date,
-      parseInt(formData.hours),
-      formData.reason
-    );
+    try {
+      const token = localStorage.getItem('authToken');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
 
-    if (newRequest) {
-      setRequests([...requests, newRequest]);
-      setFormData({ date: '', hours: '', reason: '' });
-      setShowForm(false);
+      // Get current user to get assignedFloorId
+      const userRes = await fetch('http://localhost:5000/api/auth/me', { headers });
+      if (!userRes.ok) throw new Error('Failed to get user info');
+      
+      const userData = await userRes.json();
+      const assignedFloorId = userData.user?.assignedFloorId;
+
+      if (!assignedFloorId) {
+        alert('You are not assigned to a floor');
+        return;
+      }
+
+      // Get floor manager for this floor
+      const managerRes = await fetch(`http://localhost:5000/api/users/floor-manager/${assignedFloorId}`, { headers });
+      if (!managerRes.ok) throw new Error('Floor manager not found');
+      
+      const managerData = await managerRes.json();
+      const floorManagerId = managerData.floorManager?.id;
+
+      if (!floorManagerId) {
+        alert('Floor manager not found for your floor');
+        return;
+      }
+
+      // Submit the overtime request
+      const response = await fetch('http://localhost:5000/api/overtime/submit', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          floorManagerId,
+          date: formData.date,
+          hours: parseInt(formData.hours),
+          reason: formData.reason.trim()
+        })
+      });
+
+      if (response.ok) {
+        const newRequestData = await response.json();
+        const newRequest = newRequestData.overtimeRequest || newRequestData;
+        setRequests([newRequest, ...requests]);
+        setFormData({ date: '', hours: '', reason: '' });
+        setShowForm(false);
+        setSuccessMessage('Overtime request submitted successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Failed to submit overtime request');
+      }
+    } catch (err) {
+      console.error('Error submitting request:', err);
+      alert('Error: ' + err.message);
     }
   };
 
@@ -84,16 +226,34 @@ export default function OvertimeRequest({ user }) {
         </button>
       </div>
 
+      {successMessage && (
+        <div className="success-message">
+          ✓ {successMessage}
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message">
+          ✕ {error}
+        </div>
+      )}
+
       {/* Request Form */}
       {showForm && (
         <div className="overtime-form-wrapper">
           <div className="overtime-form">
             <h3>Submit Overtime Request</h3>
 
-            <div className="manager-assigned">
-              <p>📋 Floor Manager: <strong>{floorManager?.name}</strong></p>
-              <p className="manager-contact">📧 {floorManager?.email}</p>
-            </div>
+            {floorManager ? (
+              <div className="manager-assigned">
+                <p>📋 Floor Manager: <strong>{floorManager.name}</strong></p>
+                <p className="manager-contact">📧 {floorManager.email}</p>
+              </div>
+            ) : (
+              <div className="no-manager">
+                <p>⚠️ No floor manager assigned to your floor. Please contact administration.</p>
+              </div>
+            )}
 
             <div className="form-group">
               <label>Date *</label>
@@ -139,6 +299,7 @@ export default function OvertimeRequest({ user }) {
               <button 
                 className="btn-submit"
                 onClick={handleSubmitRequest}
+                disabled={!formData.date || !formData.hours || !formData.reason.trim()}
               >
                 ✓ Submit Request
               </button>
@@ -157,7 +318,9 @@ export default function OvertimeRequest({ user }) {
       <div className="requests-list">
         <h3>Your Overtime Requests</h3>
 
-        {requests.length === 0 ? (
+        {loading ? (
+          <div className="loading">Loading overtime requests...</div>
+        ) : requests.length === 0 ? (
           <div className="no-requests">
             <p>No overtime requests submitted yet.</p>
           </div>
@@ -204,9 +367,11 @@ export default function OvertimeRequest({ user }) {
                 </div>
 
                 <div className="request-footer">
-                  <p className="manager-note">
-                    📌 Assigned to: <strong>{request.floorManagerName}</strong>
-                  </p>
+                  {request.floorManager && (
+                    <p className="manager-note">
+                      📌 Assigned to: <strong>{request.floorManager.name}</strong>
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

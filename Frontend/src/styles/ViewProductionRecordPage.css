@@ -286,6 +286,44 @@
   color: #92400E;
 }
 
+.quality-badge.fair {
+  background: #FED7AA;
+  color: #92400E;
+}
+
+.efficiency-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.efficiency-badge.excellent {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.efficiency-badge.good {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.efficiency-badge.fair {
+  background: #FED7AA;
+  color: #92400E;
+}
+
+.error-message {
+  background: #FEE2E2;
+  color: #991B1B;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border-left: 4px solid #DC2626;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
 .notes-cell {
   max-width: 200px;
   white-space: nowrap;

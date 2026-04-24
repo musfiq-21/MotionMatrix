@@ -1,404 +1,320 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/WorkersProfilePage.css';
-import { users, sendMessage, getOvertimeRequestsByWorker, workerActivity } from '../db';
 
-export default function WorkersProfilePage({ department, user, onNavigateToChat }) {
-  const [workers, setWorkers] = useState([]);
+export default function WorkersProfilePage({ user }) {
+  const [assignedWorkers, setAssignedWorkers] = useState([]);
+  const [unassignedWorkers, setUnassignedWorkers] = useState([]);
+  const [floors, setFloors] = useState([]);
   const [selectedWorker, setSelectedWorker] = useState(null);
+  const [selectedFloor, setSelectedFloor] = useState('');
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [messageText, setMessageText] = useState('');
-  const [messageSent, setMessageSent] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [workerHistory, setWorkerHistory] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    // Get workers from the same department
-    const departmentWorkers = users.filter(u => 
-      u.role === 'worker' && u.department === department
-    );
-    setWorkers(departmentWorkers);
-    if (departmentWorkers.length > 0) {
-      setSelectedWorker(departmentWorkers[0]);
+    fetchData();
+  }, [user]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Fetch floors
+      const floorsRes = await fetch('http://localhost:5000/api/floors', { headers });
+      if (floorsRes.ok) {
+        const floorsData = await floorsRes.json();
+        setFloors(floorsData.floors || []);
+      }
+
+      // Fetch assigned workers for this floor manager
+      if (user?.assignedFloorId) {
+        const assignedRes = await fetch(`http://localhost:5000/api/users/floor/${user.assignedFloorId}`, { headers });
+        if (assignedRes.ok) {
+          const assignedData = await assignedRes.json();
+          // New endpoint returns { floorManager, workers, count }
+          setAssignedWorkers(assignedData.workers || []);
+        }
+      }
+
+      // Fetch unassigned workers
+      const unassignedRes = await fetch('http://localhost:5000/api/users/workers/unassigned', { headers });
+      if (unassignedRes.ok) {
+        const unassignedData = await unassignedRes.json();
+        setUnassignedWorkers(unassignedData.workers || []);
+      }
+
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load worker data');
+    } finally {
+      setLoading(false);
     }
-  }, [department]);
-
-  const getWorkerStats = (worker) => {
-    return {
-      tasksCompleted: Math.floor(Math.random() * 50) + 100,
-      accuracy: (Math.random() * 10 + 90).toFixed(1),
-      hoursWorked: Math.floor(Math.random() * 50) + 150,
-      absences: Math.floor(Math.random() * 5)
-    };
   };
 
-  const handleSendMessage = () => {
-    setShowMessageModal(true);
+  const handleAssignClick = (worker) => {
+    setSelectedWorker(worker);
+    setSelectedFloor(user?.assignedFloorId || '');
+    setShowAssignModal(true);
+  };
+
+  const handleAssignWorker = async () => {
+    if (!selectedWorker || !selectedFloor) {
+      alert('Please select a floor');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:5000/api/users/${selectedWorker.id}/assign-floor`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ assignedFloorId: parseInt(selectedFloor) })
+      });
+
+      if (response.ok) {
+        setSuccessMessage(`${selectedWorker.name} has been assigned to the floor!`);
+        setShowAssignModal(false);
+        setTimeout(() => setSuccessMessage(''), 3000);
+        // Refresh the worker lists
+        fetchData();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Failed to assign worker');
+      }
+    } catch (err) {
+      console.error('Error assigning worker:', err);
+      alert('Error assigning worker');
+    }
+  };
+
+  const handleSendMessage = (worker) => {
+    setSelectedWorker(worker);
     setMessageText('');
-    setMessageSent(false);
+    setShowMessageModal(true);
   };
 
-  const handleSubmitMessage = () => {
+  const handleSubmitMessage = async () => {
     if (!messageText.trim()) {
       alert('Please enter a message');
       return;
     }
 
     try {
-      // Get current floor manager from localStorage
-      const floorManagerData = JSON.parse(localStorage.getItem('floorManagerUser')) || user;
-      
-      if (floorManagerData && selectedWorker) {
-        // Send message from floor manager to worker
-        sendMessage(floorManagerData.id, selectedWorker.id, messageText.trim());
-        setMessageSent(true);
-        
-        // Reset after 2 seconds and navigate to chat
-        setTimeout(() => {
-          setShowMessageModal(false);
-          setMessageText('');
-          setMessageSent(false);
-          // Navigate to chat section if callback is provided
-          if (onNavigateToChat) {
-            onNavigateToChat();
-          }
-        }, 2000);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch('http://localhost:5000/api/messages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          toId: selectedWorker.id,
+          content: messageText.trim()
+        })
+      });
+
+      if (response.ok) {
+        setSuccessMessage('Message sent successfully!');
+        setShowMessageModal(false);
+        setTimeout(() => setSuccessMessage(''), 2000);
+      } else {
+        alert('Failed to send message');
       }
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (err) {
+      console.error('Error sending message:', err);
       alert('Error sending message');
     }
   };
 
-  const handleViewHistory = () => {
-    if (selectedWorker) {
-      const overtimeRequests = getOvertimeRequestsByWorker(selectedWorker.id);
-      const activities = workerActivity.filter(a => a.workerId === selectedWorker.id);
-      
-      // Generate performance history data
-      const performanceHistory = {
-        worker: selectedWorker,
-        stats: getWorkerStats(selectedWorker),
-        overtimeRequests: overtimeRequests,
-        activities: activities,
-        performanceData: [
-          { month: 'March', accuracy: (Math.random() * 10 + 90).toFixed(1), tasksCompleted: Math.floor(Math.random() * 50) + 100 },
-          { month: 'April (Current)', accuracy: (Math.random() * 10 + 90).toFixed(1), tasksCompleted: Math.floor(Math.random() * 50) + 100 }
-        ]
-      };
-      
-      setWorkerHistory(performanceHistory);
-      setShowHistoryModal(true);
-    }
-  };
+  const WorkerCard = ({ worker, isAssigned }) => (
+    <div className="worker-card">
+      <div className="worker-card-avatar">👤</div>
+      <div className="worker-card-info">
+        <h4>{worker.name}</h4>
+        <p className="worker-department">{worker.department}</p>
+        <p className="worker-position">{worker.position}</p>
+        <p className="worker-phone">📞 {worker.phone}</p>
+        {worker.assignedFloorId && (
+          <p className="worker-floor">🏢 Floor #{worker.assignedFloorId}</p>
+        )}
+      </div>
+      <div className="worker-card-actions">
+        {isAssigned && (
+          <button 
+            className="btn-message"
+            onClick={() => handleSendMessage(worker)}
+            title="Send message to worker"
+          >
+            💬 Message
+          </button>
+        )}
+        <button 
+          className="btn-assign"
+          onClick={() => handleAssignClick(worker)}
+          title="Assign worker to floor"
+        >
+          📍 {isAssigned ? 'Reassign' : 'Assign'}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="workers-profile-page">
       <div className="fm-page-header">
-        <h2>Workers Profile</h2>
-        <p>View and manage worker information for {department} department</p>
+        <h2>Workers Profile Management</h2>
+        <p>Manage assigned and unassigned workers for your floor</p>
       </div>
+
+      {successMessage && (
+        <div className="success-message">
+          ✓ {successMessage}
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message">
+          ✕ {error}
+        </div>
+      )}
 
       <div className="workers-profile-container">
-        {/* Workers List */}
-        <aside className="workers-list-sidebar">
-          <h3>Workers ({workers.length})</h3>
-          <div className="workers-list">
-            {workers.length === 0 ? (
-              <div className="no-workers">
-                <p>No workers in this department</p>
-              </div>
-            ) : (
-              workers.map(worker => (
-                <button
-                  key={worker.id}
-                  className={`worker-list-item ${selectedWorker?.id === worker.id ? 'active' : ''}`}
-                  onClick={() => setSelectedWorker(worker)}
-                >
-                  <span className="worker-list-icon">👤</span>
-                  <div className="worker-list-info">
-                    <p className="worker-list-name">{worker.name}</p>
-                    <p className="worker-list-email">{worker.email}</p>
-                  </div>
-                </button>
-              ))
-            )}
+        {/* Assigned Workers Section */}
+        <section className="workers-section">
+          <div className="section-header">
+            <h3>Assigned Workers ({assignedWorkers.length})</h3>
+            <p>Workers currently assigned to your floor</p>
           </div>
-        </aside>
-
-        {/* Worker Details */}
-        <div className="worker-details-area">
-          {selectedWorker ? (
-            <>
-              {/* Profile Card */}
-              <div className="worker-profile-card">
-                <div className="worker-profile-header">
-                  <div className="worker-avatar">👤</div>
-                  <div className="worker-basic-info">
-                    <h2>{selectedWorker.name}</h2>
-                    <p className="worker-role">{selectedWorker.role}</p>
-                    <p className="worker-department">🏭 {selectedWorker.department}</p>
-                  </div>
-                </div>
-
-                <div className="worker-contact-info">
-                  <div className="contact-item">
-                    <span className="contact-icon">📧</span>
-                    <div className="contact-details">
-                      <p className="contact-label">Email</p>
-                      <p className="contact-value">{selectedWorker.email}</p>
-                    </div>
-                  </div>
-                  <div className="contact-item">
-                    <span className="contact-icon">🆔</span>
-                    <div className="contact-details">
-                      <p className="contact-label">Employee ID</p>
-                      <p className="contact-value">{selectedWorker.id}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Performance Stats as Quick Action Cards */}
-              <div className="worker-quick-actions">
-                <h3>Worker Statistics</h3>
-                <div className="quick-actions-grid">
-                  <div className="quick-action-card">
-                    <div className="quick-action-icon">✅</div>
-                    <div className="quick-action-content">
-                      <h4>Tasks Completed</h4>
-                      <p className="quick-action-value">
-                        {getWorkerStats(selectedWorker).tasksCompleted}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="quick-action-card">
-                    <div className="quick-action-icon">⭐</div>
-                    <div className="quick-action-content">
-                      <h4>Accuracy Rate</h4>
-                      <p className="quick-action-value">
-                        {getWorkerStats(selectedWorker).accuracy}%
-                      </p>
-                    </div>
-                  </div>
-                  <div className="quick-action-card">
-                    <div className="quick-action-icon">⏱️</div>
-                    <div className="quick-action-content">
-                      <h4>Hours Worked</h4>
-                      <p className="quick-action-value">
-                        {getWorkerStats(selectedWorker).hoursWorked}h
-                      </p>
-                    </div>
-                  </div>
-                  <div className="quick-action-card">
-                    <div className="quick-action-icon">📅</div>
-                    <div className="quick-action-content">
-                      <h4>Absences</h4>
-                      <p className="quick-action-value">
-                        {getWorkerStats(selectedWorker).absences}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Action Cards */}
-              <div className="worker-quick-actions">
-                <h3>Quick Actions</h3>
-                <div className="quick-cards-grid">
-                  <div className="feature-card">
-                    <div className="feature-icon">📧</div>
-                    <div className="feature-content">
-                      <h4>Send Message</h4>
-                      <p>Send direct messages to this worker about tasks and updates.</p>
-                      <button className="feature-btn" onClick={handleSendMessage}>Send</button>
-                    </div>
-                  </div>
-
-                  <div className="feature-card">
-                    <div className="feature-icon">📊</div>
-                    <div className="feature-content">
-                      <h4>View History</h4>
-                      <p>Check worker's performance history and attendance records.</p>
-                      <button className="feature-btn" onClick={handleViewHistory}>View</button>
-                    </div>
-                  </div>
-
-                  <div className="feature-card">
-                    <div className="feature-icon">⚙️</div>
-                    <div className="feature-content">
-                      <h4>Manage Assignment</h4>
-                      <p>Assign tasks and manage worker responsibilities.</p>
-                      <button className="feature-btn">Manage</button>
-                    </div>
-                  </div>
-
-                  <div className="feature-card">
-                    <div className="feature-icon">🔴</div>
-                    <div className="feature-content">
-                      <h4>Report Issue</h4>
-                      <p>Report any issues or concerns with this worker.</p>
-                      <button className="feature-btn danger">Report</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
+          
+          {loading ? (
+            <div className="loading">Loading workers...</div>
+          ) : assignedWorkers.length === 0 ? (
+            <div className="no-workers-message">
+              <p>No workers assigned to your floor yet</p>
+            </div>
           ) : (
-            <div className="no-worker-selected">
-              <p>Select a worker to view details</p>
+            <div className="workers-grid">
+              {assignedWorkers.map(worker => (
+                <WorkerCard key={worker.id} worker={worker} isAssigned={true} />
+              ))}
             </div>
           )}
-        </div>
+        </section>
+
+        {/* Unassigned Workers Section */}
+        <section className="workers-section">
+          <div className="section-header">
+            <h3>Available Workers ({unassignedWorkers.length})</h3>
+            <p>Workers available to assign to your floor</p>
+          </div>
+
+          {loading ? (
+            <div className="loading">Loading workers...</div>
+          ) : unassignedWorkers.length === 0 ? (
+            <div className="no-workers-message">
+              <p>No unassigned workers available</p>
+            </div>
+          ) : (
+            <div className="workers-grid">
+              {unassignedWorkers.map(worker => (
+                <WorkerCard key={worker.id} worker={worker} isAssigned={false} />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
-      {/* Message Modal */}
-      {showMessageModal && (
-        <div className="modal-overlay" onClick={() => !messageSent && setShowMessageModal(false)}>
+      {/* Assignment Modal */}
+      {showAssignModal && selectedWorker && (
+        <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            {messageSent ? (
-              <div className="message-success">
-                <div className="success-icon">✓</div>
-                <h3>Message Sent!</h3>
-                <p>Your message has been sent to {selectedWorker?.name}</p>
+            <div className="modal-header">
+              <h3>Assign Worker to Floor</h3>
+              <button className="modal-close" onClick={() => setShowAssignModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="assignment-info">
+                <p><strong>Worker:</strong> {selectedWorker.name}</p>
+                <p><strong>Department:</strong> {selectedWorker.department}</p>
+                <p><strong>Position:</strong> {selectedWorker.position}</p>
               </div>
-            ) : (
-              <>
-                <div className="modal-header">
-                  <h3>Send Message to {selectedWorker?.name}</h3>
-                  <button className="modal-close" onClick={() => setShowMessageModal(false)}>✕</button>
-                </div>
-                <div className="modal-body">
-                  <textarea
-                    className="message-input"
-                    placeholder="Type your message here..."
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    rows={5}
-                  />
-                </div>
-                <div className="modal-footer">
-                  <button 
-                    className="btn-cancel" 
-                    onClick={() => setShowMessageModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    className="btn-send" 
-                    onClick={handleSubmitMessage}
-                  >
-                    Send Message
-                  </button>
-                </div>
-              </>
-            )}
+
+              <div className="form-group">
+                <label>Select Floor *</label>
+                <select 
+                  value={selectedFloor} 
+                  onChange={(e) => setSelectedFloor(e.target.value)}
+                  className="floor-select"
+                >
+                  <option value="">Choose a floor</option>
+                  {floors.map(floor => (
+                    <option key={floor.id} value={floor.id}>
+                      {floor.name} (Level {floor.level})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-cancel" 
+                onClick={() => setShowAssignModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-assign-confirm" 
+                onClick={handleAssignWorker}
+                disabled={!selectedFloor}
+              >
+                Assign Worker
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* View History Modal */}
-      {showHistoryModal && workerHistory && (
-        <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
-          <div className="modal-content history-modal" onClick={(e) => e.stopPropagation()}>
+      {/* Message Modal */}
+      {showMessageModal && selectedWorker && (
+        <div className="modal-overlay" onClick={() => setShowMessageModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Performance History - {workerHistory.worker.name}</h3>
-              <button className="modal-close" onClick={() => setShowHistoryModal(false)}>✕</button>
+              <h3>Send Message to {selectedWorker.name}</h3>
+              <button className="modal-close" onClick={() => setShowMessageModal(false)}>✕</button>
             </div>
-            
-            <div className="modal-body history-body">
-              {/* Performance Summary */}
-              <div className="history-section">
-                <h4>📊 Performance Summary</h4>
-                <div className="performance-summary">
-                  <div className="summary-card">
-                    <p className="summary-label">Accuracy Rate</p>
-                    <p className="summary-value">{workerHistory.stats.accuracy}%</p>
-                  </div>
-                  <div className="summary-card">
-                    <p className="summary-label">Tasks Completed</p>
-                    <p className="summary-value">{workerHistory.stats.tasksCompleted}</p>
-                  </div>
-                  <div className="summary-card">
-                    <p className="summary-label">Hours Worked</p>
-                    <p className="summary-value">{workerHistory.stats.hoursWorked}h</p>
-                  </div>
-                  <div className="summary-card">
-                    <p className="summary-label">Absences</p>
-                    <p className="summary-value">{workerHistory.stats.absences}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Performance Trend */}
-              <div className="history-section">
-                <h4>📈 Performance Trend</h4>
-                <div className="performance-table">
-                  <div className="table-header">
-                    <div className="table-cell">Period</div>
-                    <div className="table-cell">Accuracy</div>
-                    <div className="table-cell">Tasks Completed</div>
-                  </div>
-                  {workerHistory.performanceData.map((data, index) => (
-                    <div key={index} className="table-row">
-                      <div className="table-cell">{data.month}</div>
-                      <div className="table-cell">{data.accuracy}%</div>
-                      <div className="table-cell">{data.tasksCompleted}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Overtime Requests */}
-              {workerHistory.overtimeRequests.length > 0 && (
-                <div className="history-section">
-                  <h4>⏰ Overtime Requests</h4>
-                  <div className="overtime-list">
-                    {workerHistory.overtimeRequests.map(request => (
-                      <div key={request.id} className="overtime-item">
-                        <div className="overtime-header">
-                          <span className="overtime-date">{request.date}</span>
-                          <span className={`overtime-status ${request.status}`}>{request.status.toUpperCase()}</span>
-                        </div>
-                        <p className="overtime-details">{request.hours} hours - {request.reason}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent Activity */}
-              {workerHistory.activities.length > 0 && (
-                <div className="history-section">
-                  <h4>📍 Recent Activity</h4>
-                  <div className="activity-list">
-                    {workerHistory.activities.map(activity => (
-                      <div key={activity.id} className="activity-item">
-                        <div className="activity-time">
-                          {new Date(activity.timestamp).toLocaleTimeString()}
-                        </div>
-                        <div className="activity-content">
-                          <p className="activity-text">{activity.activity}</p>
-                          <p className="activity-status">{activity.status}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {workerHistory.overtimeRequests.length === 0 && workerHistory.activities.length === 0 && (
-                <div className="no-data">
-                  <p>No additional history records found</p>
-                </div>
-              )}
+            <div className="modal-body">
+              <textarea
+                className="message-input"
+                placeholder="Type your message here..."
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                rows={6}
+              />
             </div>
-
             <div className="modal-footer">
               <button 
                 className="btn-cancel" 
-                onClick={() => setShowHistoryModal(false)}
+                onClick={() => setShowMessageModal(false)}
               >
-                Close
+                Cancel
+              </button>
+              <button 
+                className="btn-send" 
+                onClick={handleSubmitMessage}
+              >
+                Send Message
               </button>
             </div>
           </div>

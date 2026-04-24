@@ -327,6 +327,68 @@
   cursor: not-allowed;
 }
 
+/* Typing Indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #F5F2ED;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  background: #999;
+  border-radius: 50%;
+  animation: typing 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  30% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+/* Error Message */
+.error-message {
+  background: #FEE2E2;
+  color: #DC2626;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  border-left: 4px solid #DC2626;
+}
+
+.no-contacts {
+  text-align: center;
+  color: #999;
+  padding: 20px 10px;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .chatbox-layout {

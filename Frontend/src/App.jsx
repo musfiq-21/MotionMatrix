@@ -105,32 +105,39 @@ function App() {
   }
 
   const handleLoginSuccess = (userRole, userData) => {
+    console.log('🎯 handleLoginSuccess called with:', { userRole, userData });
+    
     // Admin users access the admin dashboard
     if (userRole === 'admin') {
+      console.log('✅ Setting admin user and navigating to admin dashboard');
       setAdminUser(userData)
       localStorage.setItem('adminUser', JSON.stringify(userData))
       navigateToPage('admin')
     } 
     // Worker users access the worker dashboard
     else if (userRole === 'worker') {
+      console.log('✅ Setting worker user and navigating to worker dashboard');
       setWorkerUser(userData)
       localStorage.setItem('workerUser', JSON.stringify(userData))
       navigateToPage('worker')
     }
     // Owner and Manager users access the owner/manager dashboard
     else if (userRole === 'owner' || userRole === 'manager') {
+      console.log('✅ Setting owner/manager user and navigating to ownerManager dashboard');
       setOwnerManagerUser(userData)
       localStorage.setItem('ownerManagerUser', JSON.stringify(userData))
       navigateToPage('ownerManager')
     }
     // Floor Manager users access the floor manager dashboard
     else if (userRole === 'floor_manager') {
+      console.log('✅ Setting floor manager user and navigating to floorManager dashboard');
       setFloorManagerUser(userData)
       localStorage.setItem('floorManagerUser', JSON.stringify(userData))
       navigateToPage('floorManager')
     }
     // Other roles cannot access the dashboards
     else {
+      console.warn('⚠️ Unknown role:', userRole);
       navigateToPage('home')
     }
   }

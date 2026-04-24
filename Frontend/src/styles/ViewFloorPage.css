@@ -9,8 +9,33 @@
 .view-floor-loading {
   padding: 40px;
   text-align: center;
-  color: #999;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.view-floor-loading.error-state {
+  background: #FEF2F2;
+}
+
+.loading-spinner {
+  color: #1B4332;
   font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.error-message {
+  color: #991B1B;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: #FEE2E2;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #DC2626;
 }
 
 /* Floor Monitoring Grid */

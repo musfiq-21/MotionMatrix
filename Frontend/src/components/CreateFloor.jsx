@@ -1,16 +1,43 @@
-import React, { useState } from 'react';
-import { addFloor, getAllFloors, deleteFloor, updateFloor } from '../db';
+import React, { useState, useEffect } from 'react';
 import '../styles/CreateFloor.css';
 
 const CreateFloor = ({ onSelectFloor }) => {
-  const [floors, setFloors] = useState(getAllFloors());
+  const [floors, setFloors] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     level: '',
     area: ''
   });
+
+  // Fetch all floors on component mount
+  useEffect(() => {
+    fetchFloors();
+  }, []);
+
+  const fetchFloors = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch('http://localhost:5000/api/floors', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFloors(data.floors || []);
+      }
+    } catch (error) {
+      console.error('Error fetching floors:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -20,18 +47,38 @@ const CreateFloor = ({ onSelectFloor }) => {
     }));
   };
 
-  const handleAddFloor = (e) => {
+  const handleAddFloor = async (e) => {
     e.preventDefault();
     if (formData.name && formData.level !== '' && formData.area !== '') {
-      const newFloor = addFloor({
-        name: formData.name,
-        level: formData.level,
-        area: formData.area,
-        status: 'active'
-      });
-      setFloors([...floors, newFloor]);
-      setFormData({ name: '', level: '', area: '' });
-      setShowForm(false);
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('authToken');
+        
+        const response = await fetch('http://localhost:5000/api/floors', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            level: formData.level,
+            area: formData.area,
+            status: 'active'
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setFloors([...floors, data.data]);
+          setFormData({ name: '', level: '', area: '' });
+          setShowForm(false);
+        }
+      } catch (error) {
+        console.error('Error adding floor:', error);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -45,28 +92,64 @@ const CreateFloor = ({ onSelectFloor }) => {
     setShowForm(true);
   };
 
-  const handleUpdateFloor = (e) => {
+  const handleUpdateFloor = async (e) => {
     e.preventDefault();
     if (formData.name && formData.level !== '' && formData.area !== '') {
-      updateFloor(editingId, {
-        name: formData.name,
-        level: formData.level,
-        area: formData.area
-      });
-      setFloors(floors.map(f => 
-        f.id === editingId 
-          ? { ...f, name: formData.name, level: formData.level, area: formData.area }
-          : f
-      ));
-      setFormData({ name: '', level: '', area: '' });
-      setEditingId(null);
-      setShowForm(false);
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('authToken');
+        
+        const response = await fetch(`http://localhost:5000/api/floors/${editingId}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            level: formData.level,
+            area: formData.area
+          })
+        });
+        
+        if (response.ok) {
+          setFloors(floors.map(f => 
+            f.id === editingId 
+              ? { ...f, name: formData.name, level: formData.level, area: formData.area }
+              : f
+          ));
+          setFormData({ name: '', level: '', area: '' });
+          setEditingId(null);
+          setShowForm(false);
+        }
+      } catch (error) {
+        console.error('Error updating floor:', error);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleDeleteFloor = (id) => {
-    deleteFloor(id);
-    setFloors(floors.filter(f => f.id !== id));
+  const handleDeleteFloor = async (id) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      const response = await fetch(`http://localhost:5000/api/floors/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        setFloors(floors.filter(f => f.id !== id));
+      }
+    } catch (error) {
+      console.error('Error deleting floor:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {

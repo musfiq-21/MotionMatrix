@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/AddWorker.css';
 
 const AddWorker = () => {
@@ -14,13 +14,67 @@ const AddWorker = () => {
     nid: '',
     gender: '',
     joinDate: '',
-    position: ''
+    position: '',
+    assignedFloorId: ''
   });
 
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [floors, setFloors] = useState([]);
+  const [floorsLoading, setFloorsLoading] = useState(true);
+  const [floorsError, setFloorsError] = useState(null);
+
+  useEffect(() => {
+    // Fetch floors for the dropdown
+    const fetchFloors = async () => {
+      try {
+        setFloorsLoading(true);
+        const token = localStorage.getItem('authToken');
+        
+        if (!token) {
+          console.warn('⚠️ No auth token found');
+          setFloorsError('Please login first');
+          setFloors([]);
+          setFloorsLoading(false);
+          return;
+        }
+        
+        const response = await fetch('http://localhost:5000/api/floors', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('Invalid or expired authentication token. Please login again.');
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('🏢 Floors loaded:', data);
+        
+        if (data.success && data.floors) {
+          setFloors(data.floors);
+          setFloorsError(null);
+        } else {
+          setFloorsError('No floors available');
+          setFloors([]);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching floors:', error);
+        setFloorsError(error.message);
+        setFloors([]);
+      } finally {
+        setFloorsLoading(false);
+      }
+    };
+    fetchFloors();
+  }, []);
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -41,45 +95,93 @@ const AddWorker = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
 
     if (!formData.name.trim()) newErrors.name = 'Full name is required';
     if (!formData.workerId.trim()) newErrors.workerId = 'Worker ID is required';
     if (!formData.role) newErrors.role = 'Role is required';
+    // Allow floor assignment for both FLOOR_MANAGER and WORKER
+    if (['FLOOR_MANAGER', 'WORKER'].includes(formData.role.toUpperCase()) && !formData.assignedFloorId) {
+      newErrors.assignedFloorId = `Assigned floor is required for ${formData.role}`;
+    }
     if (!formData.email) newErrors.email = 'Email is required';
     else if (!validateEmail(formData.email)) newErrors.email = 'Invalid email format';
     if (!formData.password) newErrors.password = 'Password is required';
     else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Please confirm password';
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-    if (!formData.department) newErrors.department = 'Department is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
     if (!formData.nid.trim()) newErrors.nid = 'NID or ID number is required';
     if (!formData.gender) newErrors.gender = 'Please select gender';
+    // Department is not required for OWNER role
+    if (!formData.department && formData.role.toUpperCase() !== 'OWNER') newErrors.department = 'Department is required';
     if (!formData.joinDate) newErrors.joinDate = 'Join date is required';
     if (!formData.position) newErrors.position = 'Position is required';
 
     if (Object.keys(newErrors).length === 0) {
-      setMessage('✅ Worker/Account added successfully!');
-      setTimeout(() => {
-        setFormData({
-          name: '',
-          workerId: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          role: '',
-          department: '',
-          phone: '',
-          nid: '',
-          gender: '',
-          joinDate: '',
-          position: ''
+      try {
+        console.log('👤 Adding new worker with data:', formData);
+        
+        const token = localStorage.getItem('authToken');
+        
+        // Call backend API to create user
+        const response = await fetch('http://localhost:5000/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            confirmPassword: formData.confirmPassword,
+            role: formData.role.toUpperCase(),
+            department: formData.department,
+            phone: formData.phone,
+            nid: formData.nid,
+            gender: formData.gender,
+            joinDate: formData.joinDate,
+            position: formData.position,
+            workerId: formData.workerId,
+            assignedFloorId: formData.assignedFloorId ? parseInt(formData.assignedFloorId) : null
+          })
         });
-        setMessage('');
-      }, 2000);
+
+        const data = await response.json();
+        console.log('📤 Add worker response:', data);
+
+        if (data.success) {
+          setMessage('✅ Worker/Account added successfully!');
+          setTimeout(() => {
+            setFormData({
+              name: '',
+              workerId: '',
+              email: '',
+              password: '',
+              confirmPassword: '',
+              role: '',
+              department: '',
+              phone: '',
+              nid: '',
+              gender: '',
+              joinDate: '',
+              position: '',
+              assignedFloorId: ''
+            });
+            setMessage('');
+            setErrors({});
+          }, 2000);
+        } else {
+          console.error('❌ Add worker failed:', data.message);
+          setErrors({ api: data.message || 'Failed to create user' });
+        }
+      } catch (error) {
+        console.error('❌ Add worker error:', error);
+        setErrors({ api: 'Error connecting to server: ' + error.message });
+      }
     } else {
       setErrors(newErrors);
     }
@@ -92,6 +194,7 @@ const AddWorker = () => {
         <p className="form-subtitle">Register a new worker and create their account in the system</p>
 
         {message && <div className="success-message">{message}</div>}
+        {errors.api && <div className="error-message">{errors.api}</div>}
 
         <form onSubmit={handleSubmit} className="worker-form">
           <div className="form-row">
@@ -125,6 +228,7 @@ const AddWorker = () => {
           </div>
 
           <div className="form-row">
+            {formData.role.toUpperCase() !== 'OWNER' && (
             <div className="form-group">
               <label htmlFor="department">Department</label>
               <select
@@ -143,6 +247,7 @@ const AddWorker = () => {
               </select>
               {errors.department && <span className="error-text">{errors.department}</span>}
             </div>
+            )}
 
             <div className="form-group">
               <label htmlFor="role">Role</label>
@@ -155,12 +260,41 @@ const AddWorker = () => {
               >
                 <option value="">Select Role</option>
                 <option value="worker">Worker</option>
-                <option value="supervisor">Supervisor</option>
-                <option value="manager">Manager</option>
                 <option value="floor_manager">Floor Manager</option>
+                <option value="manager">Manager</option>
+                <option value="owner">Owner</option>
               </select>
               {errors.role && <span className="error-text">{errors.role}</span>}
             </div>
+
+            {['FLOOR_MANAGER', 'WORKER'].includes(formData.role.toUpperCase()) && (
+              <div className="form-group">
+                <label htmlFor="assignedFloorId">Assigned Floor <span className="required">*</span></label>
+                <select
+                  id="assignedFloorId"
+                  name="assignedFloorId"
+                  value={formData.assignedFloorId}
+                  onChange={handleChange}
+                  className={errors.assignedFloorId ? 'input-error' : ''}
+                  disabled={floorsLoading || floorsError}
+                >
+                  <option value="">
+                    {floorsLoading ? '⏳ Loading floors...' : floorsError ? '❌ Error loading floors' : 'Select Floor'}
+                  </option>
+                  {!floorsLoading && !floorsError && floors.length > 0 ? (
+                    floors.map((floor) => (
+                      <option key={floor.id} value={floor.id}>
+                        {floor.name} (Level {floor.level})
+                      </option>
+                    ))
+                  ) : !floorsLoading && floors.length === 0 && !floorsError ? (
+                    <option value="" disabled>No floors available</option>
+                  ) : null}
+                </select>
+                {errors.assignedFloorId && <span className="error-text">{errors.assignedFloorId}</span>}
+                {floorsError && <span className="error-text">⚠️ {floorsError}</span>}
+              </div>
+            )}
           </div>
 
           <div className="form-row">
@@ -288,7 +422,19 @@ const AddWorker = () => {
               {errors.joinDate && <span className="error-text">{errors.joinDate}</span>}
             </div>
 
-            <div className="form-group"></div>
+            <div className="form-group">
+              <label htmlFor="position">Position</label>
+              <input
+                id="position"
+                type="text"
+                name="position"
+                placeholder="Enter position/title"
+                value={formData.position}
+                onChange={handleChange}
+                className={errors.position ? 'input-error' : ''}
+              />
+              {errors.position && <span className="error-text">{errors.position}</span>}
+            </div>
           </div>
 
           <button type="submit" className="btn-submit">

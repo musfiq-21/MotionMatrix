@@ -1,61 +1,178 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/FloorManagerChatBox.css';
-import { 
-  getMessagesBetween, 
-  sendMessage,
-  getAvailableChatUsers
-} from '../db';
+import SocketService from '../services/socketService';
 
 export default function FloorManagerChatBox({ user }) {
-  const [conversationUsers, setConversationUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [availableContacts, setAvailableContacts] = useState([]);
+  const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [socket, setSocket] = useState(null);
   const messagesEndRef = useRef(null);
+  const listenerSetupDone = useRef(false);
 
   useEffect(() => {
-    // Get available users based on floor manager role
-    const otherUsers = getAvailableChatUsers(user);
-    setConversationUsers(otherUsers);
-    if (otherUsers.length > 0) {
-      setSelectedUser(otherUsers[0]);
+    const token = localStorage.getItem('authToken');
+    if (!token || !user?.id) {
+      setError('Not authenticated');
+      setLoading(false);
+      return;
     }
-  }, [user.id]);
 
+    console.log('🔌 Floor Manager Chat: Initializing for user:', user.name);
+
+    // Connect to WebSocket
+    const socketInstance = SocketService.connect(token);
+    setSocket(socketInstance);
+
+    // Fetch available contacts
+    fetchAvailableContacts();
+
+    return () => {
+      console.log('🧹 FloorManagerChatBox cleanup');
+      SocketService.removeListener('receive_message');
+      SocketService.removeListener('error');
+    };
+  }, [user]);
+
+  // Set up message listeners ONLY ONCE after socket is available
   useEffect(() => {
-    if (selectedUser) {
-      const msgs = getMessagesBetween(user.id, selectedUser.id);
-      setMessages(msgs);
+    if (!socket || listenerSetupDone.current) {
+      return;
     }
-  }, [selectedUser, user.id]);
 
-  // Auto-refresh messages every 2 seconds to sync messages from Workers Profile
-  useEffect(() => {
-    if (selectedUser) {
-      const interval = setInterval(() => {
-        const msgs = getMessagesBetween(user.id, selectedUser.id);
-        setMessages(msgs);
-      }, 2000);
+    console.log('📡 Setting up socket listeners in FloorManagerChatBox...');
+    listenerSetupDone.current = true;
 
-      return () => clearInterval(interval);
-    }
-  }, [selectedUser, user.id]);
+    SocketService.onMessageReceived((message) => {
+      console.log('📨 Floor Manager received message:', message);
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(m => m.id === message.id)) {
+          return prev;
+        }
+        return [...prev, message];
+      });
+    });
 
-  // Scroll to bottom when messages update
+    SocketService.onError((errorData) => {
+      console.error('❌ Error:', errorData);
+      setError(errorData.message);
+      setTimeout(() => setError(''), 3000);
+    });
+  }, [socket]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSelectUser = (selectedUser) => {
-    setSelectedUser(selectedUser);
+  const fetchAvailableContacts = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('authToken');
+      
+      console.log('📱 Floor Manager fetching available contacts...');
+      const response = await fetch('http://localhost:5000/api/messages/available-contacts', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`✅ Floor Manager: Loaded ${data.count} contacts:`, data.contacts);
+        setAvailableContacts(data.contacts || []);
+        // Auto-select first contact if available
+        if (data.contacts && data.contacts.length > 0) {
+          loadChatHistory(data.contacts[0]);
+          setSelectedContact(data.contacts[0]);
+        }
+        setError('');
+      } else {
+        setError('Failed to load contacts');
+      }
+    } catch (err) {
+      console.error('❌ Error fetching contacts:', err);
+      setError('Error loading contacts');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSendMessage = () => {
-    if (newMessage.trim() && selectedUser) {
-      sendMessage(user.id, selectedUser.id, newMessage);
-      const msgs = getMessagesBetween(user.id, selectedUser.id);
-      setMessages(msgs);
-      setNewMessage('');
+  const loadChatHistory = async (contact) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`http://localhost:5000/api/messages/between/${contact.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`✅ Loaded ${data.count} messages`);
+        setMessages(data.messages || []);
+      }
+    } catch (err) {
+      console.error('❌ Error loading chat history:', err);
+    }
+  };
+
+  const handleSelectContact = (contact) => {
+    console.log('👤 Floor Manager selected contact:', contact.name);
+    setSelectedContact(contact);
+    loadChatHistory(contact);
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedContact) return;
+
+    const messageContent = newMessage;
+    const toId = parseInt(selectedContact.id);
+
+    try {
+      const token = localStorage.getItem('authToken');
+      
+      // Emit via Socket.io if connected
+      if (socket && socket.connected) {
+        SocketService.sendMessage(toId, messageContent);
+        console.log('✅ Message emitted via socket');
+      }
+
+      // Also send via REST API for persistence
+      const response = await fetch('http://localhost:5000/api/messages/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          toId: toId,
+          content: messageContent
+        })
+      });
+
+      if (response.ok) {
+        console.log('✅ Message saved via API');
+        // Add message to local state immediately
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          fromId: user.id,
+          toId: toId,
+          content: messageContent,
+          createdAt: new Date().toISOString(),
+          from: { id: user.id, name: user.name, role: user.role },
+          to: selectedContact
+        }]);
+        setNewMessage('');
+      }
+    } catch (error) {
+      console.error('❌ Error sending message:', error);
+      setError('Failed to send message');
     }
   };
 
@@ -66,124 +183,103 @@ export default function FloorManagerChatBox({ user }) {
     }
   };
 
-  const getRoleIcon = (role) => {
-    switch (role) {
-      case 'worker':
-        return '👤';
-      case 'floor_manager':
-        return '👷';
-      case 'admin':
-        return '👨‍💼';
-      case 'manager':
-        return '📊';
-      default:
-        return '👤';
-    }
-  };
+  if (loading) {
+    return (
+      <div className="fm-chatbox-container">
+        <div className="loading">Loading contacts...</div>
+      </div>
+    );
+  }
 
-  const getRoleColor = (role) => {
-    switch (role) {
-      case 'worker':
-        return '#10B981';
-      case 'floor_manager':
-        return '#D97706';
-      case 'admin':
-        return '#1B4332';
-      case 'manager':
-        return '#8B5CF6';
-      default:
-        return '#999';
-    }
-  };
+  if (availableContacts.length === 0) {
+    return (
+      <div className="fm-chatbox-container">
+        <div className="no-contacts">
+          <p>No available contacts to message.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="fm-chatbox-page">
-      <div className="fm-page-header">
-        <h2>Communication Hub</h2>
-        <p>Connect with workers and team members</p>
-      </div>
-
-      <div className="fm-chat-container">
-        {/* Users Sidebar */}
-        <aside className="fm-users-sidebar">
-          <h3>Conversations</h3>
-          <div className="fm-users-list">
-            {conversationUsers.map(convUser => (
-              <button
-                key={convUser.id}
-                className={`fm-user-item ${selectedUser?.id === convUser.id ? 'active' : ''}`}
-                onClick={() => handleSelectUser(convUser)}
-                style={{
-                  borderLeftColor: selectedUser?.id === convUser.id ? getRoleColor(convUser.role) : '#D8E2DC'
-                }}
+    <div className="fm-chatbox-container">
+      <div className="chat-wrapper">
+        {/* Contacts List */}
+        <div className="contacts-panel">
+          <h3>💬 Available Contacts</h3>
+          {error && <div className="error-message">{error}</div>}
+          <div className="contacts-list">
+            {availableContacts.map(contact => (
+              <div
+                key={contact.id}
+                className={`contact-item ${selectedContact?.id === contact.id ? 'active' : ''}`}
+                onClick={() => handleSelectContact(contact)}
               >
-                <span className="fm-user-icon">{getRoleIcon(convUser.role)}</span>
-                <div className="fm-user-info">
-                  <p className="fm-user-name">{convUser.name}</p>
-                  <p className="fm-user-role">{convUser.role}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        {/* Chat Area */}
-        <div className="fm-chat-area">
-          {selectedUser && (
-            <>
-              {/* Chat Header */}
-              <div className="fm-chat-header">
-                <span className="fm-header-icon">{getRoleIcon(selectedUser.role)}</span>
-                <div className="fm-header-info">
-                  <h3>{selectedUser.name}</h3>
-                  <p>{selectedUser.role} • {selectedUser.department}</p>
+                <div className="contact-avatar">{contact.name.charAt(0)}</div>
+                <div className="contact-info">
+                  <p className="contact-name">{contact.name}</p>
+                  <p className="contact-role">{contact.role}</p>
                 </div>
               </div>
+            ))}
+          </div>
+        </div>
 
-              {/* Messages Area */}
-              <div className="fm-messages">
+        {/* Chat Area */}
+        <div className="chat-panel">
+          {selectedContact && (
+            <>
+              <div className="chat-header">
+                <h2>💬 {selectedContact.name}</h2>
+                <p>{selectedContact.department}</p>
+              </div>
+
+              <div className="chat-messages">
                 {messages.length === 0 ? (
-                  <div className="fm-empty-chat">
+                  <div className="no-messages">
                     <p>No messages yet. Start the conversation!</p>
                   </div>
                 ) : (
-                  messages.map((msg, index) => (
-                    <div
-                      key={index}
-                      className={`fm-message ${msg.fromId === user.id ? 'sent' : 'received'}`}
-                    >
-                      <span className="fm-message-icon">
-                        {msg.fromId === user.id ? '👷' : getRoleIcon(selectedUser.role)}
-                      </span>
-                      <div className="fm-message-content">
-                        <p className="fm-message-sender">{msg.fromName}</p>
-                        <div className="fm-message-bubble">
+                  messages
+                    .filter(msg =>
+                      (msg.fromId === user?.id && msg.toId === selectedContact.id) ||
+                      (msg.fromId === selectedContact.id && msg.toId === user?.id)
+                    )
+                    .map((msg, index) => (
+                      <div 
+                        key={msg.id || index} 
+                        className={`message ${msg.fromId === user?.id ? 'sent' : 'received'}`}
+                      >
+                        <div className="message-bubble">
                           {msg.content}
                         </div>
-                        <span className="fm-message-time">
-                          {new Date(msg.timestamp).toLocaleTimeString()}
-                        </span>
+                        <div className="message-time">
+                          {new Date(msg.createdAt).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
-              <div className="fm-input-area">
-                <textarea
-                  className="fm-input-field"
-                  placeholder="Type a message... (Shift+Enter for new line)"
+              <div className="chat-input-area">
+                <input
+                  type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
+                  placeholder="Type your message..."
+                  className="chat-input"
                 />
                 <button 
-                  className="fm-send-btn"
                   onClick={handleSendMessage}
+                  className="btn-send-message"
+                  disabled={!newMessage.trim()}
                 >
-                  Send
+                  📤 Send
                 </button>
               </div>
             </>

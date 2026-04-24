@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import '../styles/WorkerDashboard.css';
-import WorkerChatBox from './WorkerChatBox';
+import UnifiedChat from './UnifiedChat';
 import OvertimeRequest from './OvertimeRequest';
 import WorkerProfile from './WorkerProfile';
 
@@ -134,13 +134,13 @@ export default function WorkerDashboard({ user }) {
         )}
 
         {/* Chat Section */}
-        {activeSection === 'chat' && <WorkerChatBox user={user} />}
+        {activeSection === 'chat' && <UnifiedChat user={user} />}
 
         {/* Overtime Section */}
         {activeSection === 'overtime' && <OvertimeRequest user={user} />}
 
         {/* Profile Section */}
-        {activeSection === 'profile' && <WorkerProfile user={user} />}
+        {activeSection === 'profile' && <WorkerProfile user={user} currentUser={user} />}
       </main>
     </div>
   );

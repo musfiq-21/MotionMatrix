@@ -411,6 +411,117 @@
   background: #555;
 }
 
+/* View Workers Section */
+.view-workers-section {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.view-workers-section h2 {
+  color: #1B4332;
+  margin-bottom: 25px;
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.error-banner {
+  background: #FEE2E2;
+  color: #DC2626;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #DC2626;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px;
+  background: #F5F2ED;
+  border-radius: 8px;
+  color: #999;
+}
+
+.users-table-wrapper {
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.users-table thead {
+  background: linear-gradient(135deg, #1B4332 0%, #2D5A3D 100%);
+  color: white;
+}
+
+.users-table thead th {
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+}
+
+.users-table tbody tr {
+  border-bottom: 1px solid #E5E5E5;
+  transition: all 0.3s ease;
+}
+
+.users-table tbody tr:hover {
+  background: #F9F9F9;
+}
+
+.users-table tbody td {
+  padding: 15px;
+  font-size: 0.9rem;
+}
+
+.name-cell {
+  font-weight: 600;
+  color: #1B4332;
+}
+
+.role-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 2px solid;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.active {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.status-badge.inactive {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .cards-grid {
